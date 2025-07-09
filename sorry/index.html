@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sorry, BBG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      background: linear-gradient(to top, #bbf7d0 65%, #fdf6e3 100%);
+      font-family: 'Quicksand', sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .sorry-title {
+      font-family: 'Pacifico', cursive;
+      color: #ef4444;
+      text-shadow: 2px 2px #f9a8d4;
+      margin-bottom: 1rem;
+    }
+    .sorry-note {
+      font-size: 1.2rem;
+      color: #334155;
+      background: #fff0f6cc;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 24px #fca5a580;
+      text-align: center;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .signature {
+      color: #f472b6;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-top: 0.8rem;
+      display: block;
+    }
+    .hearts {
+      font-size: 2.2rem;
+      animation: floatHearts 2.5s infinite alternate;
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.1em;
+    }
+    @keyframes floatHearts {
+      from { transform: translateY(0); }
+      to { transform: translateY(-15px); }
+    }
+    .garden-area {
+      width: 100%;
+      max-width: 650px;
+      height: 250px;
+      position: relative;
+      margin: 0 auto 1.5rem auto;
+      overflow: visible;
+    }
+    .grass {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background: linear-gradient(to top, #4ade80 60%, #bbf7d0 100%);
+      border-radius: 50% 50% 70% 70% / 60% 60% 80% 80%;
+      z-index: 1;
+    }
+    .flower {
+      position: absolute;
+      z-index: 2;
+    }
+    .flower .stem {
+      width: 5px;
+      height: 38px;
+      background: #22c55e;
+      margin: 0 auto;
+      border-radius: 3px;
+    }
+    .flower .petal {
+      width: 18px;
+      height: 18px;
+      background: #f9a8d4;
+      border-radius: 50%;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: -9px;
+      box-shadow: 
+        0 0 0 0 #fef9c3,
+        10px 0 #fef9c3,
+        -10px 0 #fef9c3,
+        0 10px #fef9c3,
+        0 -10px #fef9c3;
+    }
+    .flower .center {
+      width: 10px;
+      height: 10px;
+      background: #f59e42;
+      border-radius: 50%;
+      position: absolute;
+      left: 50%;
+      top: 2px;
+      transform: translateX(-50%);
+      z-index: 2;
+      border: 2px solid #fff;
+    }
+    /* Couple */
+    .couple {
+      position: absolute;
+      left: 50%;
+      bottom: 70px;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      align-items: flex-end;
+      gap: 24px;
+      animation: coupleBounce 2.2s infinite alternate;
+    }
+    @keyframes coupleBounce {
+      from { transform: translateX(-50%) translateY(0); }
+      to   { transform: translateX(-50%) translateY(-10px);}
+    }
+    .person {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* SK */
+    .sk-body {
+      width: 32px;
+      height: 65px;
+      background: #a7f3d0;
+      border-radius: 15px 15px 18px 18px / 22px 22px 42px 42px;
+      border: 2px solid #22d3ee;
+      margin-bottom: -7px;
+    }
+    .sk-head {
+      width: 28px;
+      height: 28px;
+      background: #fde68a;
+      border-radius: 50%;
+      border: 2px solid #f59e42;
+      margin-bottom: 2px;
+    }
+    .sk-label {
+      color: #16a34a;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-top: 2px;
+      font-family: monospace;
+    }
+    /* PRIYA */
+    .priya-body {
+      width: 32px;
+      height: 65px;
+      background: #fca5a5;
+      border-radius: 15px 15px 18px 18px / 22px 22px 42px 42px;
+      border: 2px solid #fb7185;
+      margin-bottom: -7px;
+    }
+    .priya-head {
+      width: 28px;
+      height: 28px;
+      background: #fca5a5;
+      border-radius: 50%;
+      border: 2px solid #be185d;
+      margin-bottom: 2px;
+    }
+    .priya-label {
+      color: #be185d;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-top: 2px;
+      font-family: monospace;
+    }
+    /* Couple holding hands (heart) */
+    .couple-heart {
+      position: absolute;
+      left: 50%;
+      bottom: 80px;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      z-index: 5;
+      animation: heartPulse 1.8s infinite alternate;
+    }
+    @keyframes heartPulse {
+      from { transform: translateX(-50%) scale(1);}
+      to { transform: translateX(-50%) scale(1.18);}
+    }
+    .footer-custom {
+      color: #78716c;
+      font-size: 1.1rem;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 700px) {
+      .sorry-title { font-size: 2rem; }
+      .sorry-note { font-size: 1rem; padding: 1rem; }
+      .footer-custom { font-size: 0.95rem; }
+      .garden-area { height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid min-vh-100 d-flex flex-column justify-content-center">
+    <div class="row flex-grow-1 justify-content-center align-items-center">
+      <div class="col-lg-7 text-center">
+        <!-- GARDEN AREA -->
+        <div class="garden-area mb-2">
+          <!-- Grass -->
+          <div class="grass"></div>
+          <!-- Flowers: randomly placed with inline style -->
+          <div class="flower" style="left:10%; bottom:35px;">
+            <div class="stem"></div>
+            <div class="petal"></div>
+            <div class="center"></div>
+          </div>
+          <div class="flower" style="left:22%; bottom:50px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#fef9c3"></div>
+            <div class="center" style="background:#f472b6"></div>
+          </div>
+          <div class="flower" style="left:35%; bottom:30px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#fca5a5"></div>
+            <div class="center" style="background:#f59e42"></div>
+          </div>
+          <div class="flower" style="left:47%; bottom:45px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#a7f3d0"></div>
+            <div class="center" style="background:#f472b6"></div>
+          </div>
+          <div class="flower" style="left:61%; bottom:38px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#f9a8d4"></div>
+            <div class="center" style="background:#f59e42"></div>
+          </div>
+          <div class="flower" style="left:75%; bottom:26px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#fef9c3"></div>
+            <div class="center" style="background:#be185d"></div>
+          </div>
+          <div class="flower" style="left:88%; bottom:42px;">
+            <div class="stem"></div>
+            <div class="petal" style="background:#f9a8d4"></div>
+            <div class="center" style="background:#f59e42"></div>
+          </div>
+          <!-- Couple -->
+          <div class="couple">
+            <div class="person">
+              <div class="sk-head"></div>
+              <div class="sk-body"></div>
+              <div class="sk-label">SK</div>
+            </div>
+            <div class="person">
+              <div class="priya-head"></div>
+              <div class="priya-body"></div>
+              <div class="priya-label">PRIYA</div>
+            </div>
+          </div>
+          <!-- Heart between couple -->
+          <div class="couple-heart">💞</div>
+        </div>
+        <h1 class="sorry-title">I’m Sorry, BBG</h1>
+        <div class="sorry-note mb-3">
+          My dearest GF,<br /><br />
+          I know I hurt you with my words, and I regret it deeply. You are my BBG, my everything, and I never want to be the reason behind your tears.<br>
+          Please forgive me, and let’s fill our story with love, laughter, and understanding.<br>
+          I promise to cherish you, respect you, and always be the “mi amor” you deserve.<br /><br />
+          With all my love,<br />
+          <span class="signature">Mi Amor (SK)</span>
+        </div>
+        <div class="hearts">
+          <span>💖</span>
+          <span>💗</span>
+          <span>💞</span>
+        </div>
+      </div>
+    </div>
+    <footer class="footer-custom py-4 mt-auto">
+      For my BBG Priya &mdash; forever your Mi Amor (SK) 💝
+    </footer>
+  </div>
+  <!-- Bootstrap JS (Optional, only needed for Bootstrap components that require JS) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
