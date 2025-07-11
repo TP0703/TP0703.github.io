@@ -16,7 +16,6 @@
             --bg-light: #f8f9fa;
             --dark-bg: #232323;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -45,7 +44,7 @@
         .hero-section {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            padding: 100px 0;
+            padding: 100px 0 60px 0;
             position: relative;
             overflow: hidden;
             transition: background 0.4s, color 0.4s;
@@ -226,6 +225,9 @@
             .section-title {
                 font-size: 2rem;
             }
+            .hero-photo-wrap {
+                margin-top: 2rem;
+            }
         }
         .fade-in {
             opacity: 0;
@@ -235,6 +237,50 @@
         .fade-in.visible {
             opacity: 1;
             transform: translateY(0);
+        }
+        /* Hero round photo & right align */
+        .hero-photo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+        .hero-photo {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #fff;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.1);
+            margin-bottom: 1.5rem;
+            background: #fff;
+        }
+        .kpi-stats-mini {
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-evenly;
+            gap: 15px;
+        }
+        .kpi-stat-item {
+            background: rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 10px 18px;
+            text-align: center;
+            min-width: 80px;
+            margin-bottom: 0.5rem;
+        }
+        .kpi-stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .kpi-stat-label {
+            color: #e0e0e0;
+            font-size: 0.95rem;
         }
         /* Dark Theme Toggle */
         body.dark {
@@ -317,6 +363,15 @@
         body.dark .social-links a:hover {
             color: #3498db !important;
         }
+        body.dark .kpi-stat-item {
+            background: rgba(255,255,255,0.07);
+        }
+        body.dark .kpi-stat-number {
+            color: #fff !important;
+        }
+        body.dark .kpi-stat-label {
+            color: #cccccc !important;
+        }
     </style>
 </head>
 <body>
@@ -355,7 +410,8 @@
     <section id="home" class="hero-section">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-8">
+                <!-- Main text content -->
+                <div class="col-lg-8 order-2 order-lg-1">
                     <div class="hero-content">
                         <h1 class="hero-title fade-in">Priya Thakur</h1>
                         <p class="hero-subtitle fade-in">Operations Manager & Strategic Leader</p>
@@ -363,17 +419,17 @@
                         <a href="#contact" class="btn-custom fade-in">Get In Touch</a>
                     </div>
                 </div>
-                <div class="col-lg-4 text-center">
-                    <div class="hero-stats fade-in">
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="stat-number">125%</div>
-                                <div class="stat-label">KPI Achievement</div>
-                            </div>
-                            <div class="col-6">
-                                <div class="stat-number">95%</div>
-                                <div class="stat-label">Client Retention</div>
-                            </div>
+                <!-- Photo and KPI stats -->
+                <div class="col-lg-4 text-center order-1 order-lg-2 hero-photo-wrap">
+                    <img src="profile.jpeg" alt="Priya Thakur Photo" class="hero-photo fade-in" />
+                    <div class="kpi-stats-mini fade-in">
+                        <div class="kpi-stat-item">
+                            <div class="kpi-stat-number">125%</div>
+                            <div class="kpi-stat-label">KPI Achieved</div>
+                        </div>
+                        <div class="kpi-stat-item">
+                            <div class="kpi-stat-number">95%</div>
+                            <div class="kpi-stat-label">Client Retention</div>
                         </div>
                     </div>
                 </div>
@@ -430,16 +486,6 @@
                             <li><i class="fas fa-check text-success me-2"></i>Coordinated cross-functional projects with finance, HR, and technology across 3 units</li>
                         </ul>
                     </div>
-                    <!--<div class="experience-card fade-in">
-                        <div class="company-name">Admiral Solutions</div>
-                        <div class="job-title">Operations Associate</div>
-                        <div class="job-duration"><i class="fas fa-calendar-alt"></i> Aug 2023 – Mar 2025</div>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-check text-success me-2"></i>Executed operational processes for 15+ concurrent consulting engagements, ensuring 100% compliance</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Developed client documentation standards, reducing review cycles by 35%</li>
-                            <li><i class="fas fa-check text-success me-2"></i>Received R&R Award for highest client success rate (98%) among 25-person operations team</li>
-                        </ul>
-                    </div>-->
                 </div>
             </div>
         </div>
