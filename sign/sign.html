@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Image/PDF Signer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+<style>
+  html, body {
+    height: 100%;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+  .footer {
+    width: 100%;
+    flex-shrink: 0;
+  }
+  body { background: linear-gradient(135deg,#e6f0fb,#ffffff); }
+  .workspace { max-width: 920px; }
+  .pageWrap { position: relative; margin-bottom: 18px; display:inline-block; }
+  .pageCanvas { display: block; border: 2px dashed #666; background:white; box-shadow:0 0 8px rgba(0,0,0,0.12); }
+  .pageControls { margin-bottom:8px; }
+  .signature { position: absolute; cursor: move; touch-action: none; user-select: none; }
+  .signature-resize {
+  width: 18px;
+  height: 18px;
+  background: #0d6efd;
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  cursor: nwse-resize;
+  border-radius: 50%;
+}
+  .badge-page { min-width:40px; text-align:center; }
+</style>
+</head>
+<body class="d-flex flex-column align-items-center p-4">
+<h2 class="text-center mb-4 fw-bold text-primary">Sign Image and Pdfs</h2>
+
+<ul class="nav nav-tabs mb-4" id="modeTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#imgMode">Images</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#pdfMode">PDF</a></li>
+</ul>
+
+<div class="tab-content workspace w-100">
+
+<!-- IMAGE MODE -->
+<div class="tab-pane fade show active" id="imgMode">
+  <div class="card shadow p-4 mb-3" style="background:#ffffffcc; backdrop-filter: blur(4px);">
+    <label class="fw-semibold">Upload images (multi):</label>
+    <input type="file" id="multiImgInput" accept="image/*" multiple class="form-control mb-3">
+
+    <label class="fw-semibold">Signature image (will be used per page):</label>
+    <input type="file" id="sigImgInput" accept="image/*" class="form-control mb-3">
+  </div>
+
+  <div id="canvasContainer"></div>
+
+  <button class="btn btn-primary btn-lg mt-2" id="downloadImagesBtn">Download PDF</button>
+</div>
+
+<!-- PDF MODE -->
+<div class="tab-pane fade" id="pdfMode">
+  <div class="card shadow p-4 mb-3" style="background:#ffffffcc; backdrop-filter: blur(4px);">
+    <label class="fw-semibold">Upload PDF:</label>
+    <input type="file" id="pdfInput" accept="application/pdf" class="form-control mb-3">
+
+    <label class="fw-semibold">Signature image (will be used per page):</label>
+    <input type="file" id="pdfSigInput" accept="image/*" class="form-control mb-3">
+  </div>
+
+  <div id="pdfCanvasContainer"></div>
+
+  <button class="btn btn-primary btn-lg mt-2" id="downloadPdfBtn">Download Signed PDF</button>
+</div>
+
+</div>
+<footer class="footer bg-dark text-white mt-auto py-4">
+  <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+    <div class="mb-2 mb-md-0">
+      <span>© 2025 Your Name. All rights reserved.</span>
+    </div>
+    <div class="d-flex gap-3">
+      <a href="https://github.com/sk1802/sk1802" target="_blank" class="text-white fs-4">
+        <i class="bi bi-github"></i>
+      </a>
+      <a href="https://www.linkedin.com/in/sumit-kumar-06b022213/" target="_blank" class="text-white fs-4">
+        <i class="bi bi-linkedin"></i>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.2.146/pdf.min.js"></script>
+<script>
+// Improved background removal: detect page background by sampling corners and remove similar colors
+async function removeBG(img) {
+  const c = document.createElement('canvas');
+  const x = c.getContext('2d');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  x.drawImage(img,0,0,c.width,c.height);
+  const d = x.getImageData(0,0,c.width,c.height);
+
+  // sample corners to estimate background color
+  function samplePixel(px, py) {
+    const i = (py * c.width + px) * 4;
+    return [d.data[i], d.data[i+1], d.data[i+2]];
+  }
+  const samples = [];
+  const w = c.width, h = c.height;
+  samples.push(samplePixel(1,1));
+  samples.push(samplePixel(w-2,1));
+  samples.push(samplePixel(1,h-2));
+  samples.push(samplePixel(w-2,h-2));
+
+  const avg = samples.reduce((acc, s) => { acc[0]+=s[0]; acc[1]+=s[1]; acc[2]+=s[2]; return acc; }, [0,0,0]).map(v=>v/samples.length);
+
+  // threshold tuned by luminance distance
+  function colorDist(a,b){ return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2); }
+  const thresh = 90; // adjustable
+
+  for (let i = 0; i < d.data.length; i += 4) {
+    const px = [d.data[i], d.data[i+1], d.data[i+2]];
+    const dist = colorDist(px, avg);
+    if (dist < thresh) {
+      // treat as background — make transparent
+      d.data[i+3] = 0;
+    }
+  }
+  x.putImageData(d,0,0);
+  return c.toDataURL('image/png');
+}
+
+// Utility: create per-page signature element, initial placement: center
+function createSignatureElement(dataURL, pageWrap, canvas) {
+  const img = new Image();
+  img.src = dataURL;
+  img.className = 'signature';
+  img.draggable = false;
+
+  // Add resize handle
+  const handle = document.createElement('div');
+  handle.className = 'signature-resize';
+
+  pageWrap.appendChild(img);
+  pageWrap.appendChild(handle);
+
+  img.onload = () => {
+    // Initial scale
+    const targetWidth = Math.min(220, Math.round(canvas.width * 0.25));
+    const ratio = img.naturalWidth ? (targetWidth / img.naturalWidth) : 1;
+    const w = Math.round(img.naturalWidth * ratio);
+    const h = Math.round(img.naturalHeight * ratio);
+
+    img.style.width = w + 'px';
+    img.style.height = h + 'px';
+
+    // Center
+    const wrapRect = pageWrap.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const left = canvasRect.left - wrapRect.left + (canvasRect.width - w)/2;
+    const top  = canvasRect.top  - wrapRect.top  + (canvasRect.height - h)/2;
+
+    img.style.left = Math.round(left) + 'px';
+    img.style.top  = Math.round(top)  + 'px';
+
+    // Position handle
+    handle.style.left = (left + w - 9) + 'px';
+    handle.style.top  = (top + h - 9) + 'px';
+  };
+
+  // DRAG MOVE
+  let dragging = false, startX=0, startY=0, origX=0, origY=0;
+
+  img.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    img.setPointerCapture(ev.pointerId);
+    dragging = true;
+    startX = ev.clientX;
+    startY = ev.clientY;
+    origX = parseFloat(img.style.left) || 0;
+    origY = parseFloat(img.style.top) || 0;
+  });
+
+  img.addEventListener('pointermove', (ev) => {
+    if (!dragging) return;
+    const dx = ev.clientX - startX;
+    const dy = ev.clientY - startY;
+    img.style.left = (origX + dx) + 'px';
+    img.style.top = (origY + dy) + 'px';
+
+    // Move handle too
+    handle.style.left = (parseFloat(img.style.left) + img.clientWidth - 9) + 'px';
+    handle.style.top  = (parseFloat(img.style.top)  + img.clientHeight - 9) + 'px';
+  });
+
+  img.addEventListener('pointerup', () => { dragging = false; });
+
+  // RESIZE
+  let resizing = false, rStartX=0, rStartY=0, baseW=0, baseH=0;
+
+  handle.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    handle.setPointerCapture(ev.pointerId);
+    resizing = true;
+    rStartX = ev.clientX;
+    rStartY = ev.clientY;
+    baseW = img.clientWidth;
+    baseH = img.clientHeight;
+  });
+  // Use window pointermove so resize continues even if pointer leaves the handle
+  handle.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    handle.setPointerCapture(ev.pointerId);
+    resizing = true;
+    rStartX = ev.clientX;
+    rStartY = ev.clientY;
+    baseW = img.clientWidth;
+    baseH = img.clientHeight;
+  });
+
+  window.addEventListener('pointermove', (ev) => {
+    if (!resizing) return;
+    const dx = ev.clientX - rStartX;
+    const scale = (baseW + dx) / Math.max(1, baseW); // uniform scale
+    if (scale <= 0.1) return; // prevent negative or tiny sizes
+
+    const newW = Math.max(16, Math.round(baseW * scale));
+    const newH = Math.max(8, Math.round(baseH * scale));
+
+    img.style.width = newW + 'px';
+    img.style.height = newH + 'px';
+
+    // adjust handle pos (use 0 fallback)
+    const left = parseFloat(img.style.left) || 0;
+    const top = parseFloat(img.style.top) || 0;
+    handle.style.left = (left + newW - 9) + 'px';
+    handle.style.top  = (top  + newH - 9) + 'px';
+  });
+
+  window.addEventListener('pointerup', (ev) => {
+    resizing = false;
+    try { handle.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  });
+
+  return img;
+}
+
+// ---------------- IMAGE MODE ----------------
+const canvasContainer = document.getElementById('canvasContainer');
+let imagePageWrappers = [];
+let sigDataURL = null;
+
+document.getElementById('multiImgInput').onchange = async (e) => {
+  const files = Array.from(e.target.files || []);
+  canvasContainer.innerHTML = '';
+  imagePageWrappers = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const img = new Image(); img.src = URL.createObjectURL(file); await img.decode();
+
+    const pageWrap = document.createElement('div'); pageWrap.className = 'pageWrap';
+    const controls = document.createElement('div'); controls.className = 'pageControls d-flex align-items-center gap-2 mb-2';
+    controls.innerHTML = `<span class="badge bg-secondary badge-page">${i+1}</span>`;
+
+    const addBtn = document.createElement('button'); addBtn.className = 'btn btn-sm btn-outline-primary'; addBtn.textContent = 'Add Signature';
+    const removeBtn = document.createElement('button'); removeBtn.className = 'btn btn-sm btn-outline-danger'; removeBtn.textContent = 'Remove Signature';
+    controls.appendChild(addBtn); controls.appendChild(removeBtn); pageWrap.appendChild(controls);
+
+  const canvas = document.createElement('canvas'); canvas.className = 'pageCanvas';
+  // Compute a display width to fit nicely in the UI and preserve aspect ratio
+  const maxDisplayW = 700; // CSS pixels
+  const dpr = window.devicePixelRatio || 1;
+
+  // Handle landscape images specially: draw them in the top half of a taller canvas
+  if (img.naturalWidth > img.naturalHeight) {
+    const displayW = Math.min(maxDisplayW, img.naturalWidth);
+    const displayH = Math.round((img.naturalHeight * displayW) / img.naturalWidth);
+    const canvasDisplayH = Math.max(displayH * 2, displayH + 20); // ensure some bottom space
+
+    // Backing store uses DPR
+    canvas.width = Math.round(displayW * dpr);
+    canvas.height = Math.round(canvasDisplayH * dpr);
+    canvas.style.width = displayW + 'px';
+    canvas.style.height = canvasDisplayH + 'px';
+    canvas.style.maxWidth = '700px'; canvas.style.maxHeight = '1000px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Draw image at the top of the canvas, centered horizontally if canvas wider than image area
+    const drawX = 0;
+    const drawY = 0;
+    ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, drawX, drawY, displayW, displayH);
+  } else {
+    // Portrait or square: draw normally and center in canvas
+    const displayW = Math.min(maxDisplayW, img.naturalWidth);
+    const displayH = Math.round((img.naturalHeight * displayW) / img.naturalWidth);
+
+    canvas.width = Math.round(displayW * dpr);
+    canvas.height = Math.round(displayH * dpr);
+    canvas.style.width = displayW + 'px';
+    canvas.style.height = displayH + 'px';
+    canvas.style.maxWidth = '700px'; canvas.style.maxHeight = '1000px';
+    const ctx = canvas.getContext('2d');
+    // scale drawing operations so we can draw at CSS pixel sizes
+    ctx.scale(dpr, dpr);
+    ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, displayW, displayH);
+  }
+
+    pageWrap.appendChild(canvas); canvasContainer.appendChild(pageWrap);
+
+    const pageObj = { wrap: pageWrap, canvas, signatureEl: null };
+    imagePageWrappers.push(pageObj);
+
+    addBtn.onclick = () => {
+      if (!sigDataURL) return alert('Upload a signature image first.');
+      if (pageObj.signatureEl) return; // already
+      pageObj.signatureEl = createSignatureElement(sigDataURL, pageWrap, canvas);
+      pageObj.signatureEl.dataset.pageIndex = i; pageObj.signatureEl.dataset.mode = 'image';
+    };
+    removeBtn.onclick = () => { if (pageObj.signatureEl) { pageObj.signatureEl.remove(); pageObj.signatureEl = null; } };
+  }
+};
+
+document.getElementById('sigImgInput').onchange = async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const img = new Image(); img.src = URL.createObjectURL(file); await img.decode();
+  sigDataURL = await removeBG(img);
+  alert('Signature image processed (background removed). Click Add Signature on pages where you want it.');
+};
+
+// ---------------- PDF MODE ----------------
+const pdfContainer = document.getElementById('pdfCanvasContainer');
+let pdfPageWrappers = [];
+let pdfSigDataURL = null;
+
+document.getElementById('pdfInput').onchange = async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  pdfContainer.innerHTML = ''; pdfPageWrappers = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i); const vp = page.getViewport({scale: 1.5});
+    const pageWrap = document.createElement('div'); pageWrap.className = 'pageWrap';
+    const controls = document.createElement('div'); controls.className = 'pageControls d-flex align-items-center gap-2 mb-2';
+    controls.innerHTML = `<span class="badge bg-secondary badge-page">${i}</span>`;
+    const addBtn = document.createElement('button'); addBtn.className = 'btn btn-sm btn-outline-primary'; addBtn.textContent = 'Add Signature';
+    const removeBtn = document.createElement('button'); removeBtn.className = 'btn btn-sm btn-outline-danger'; removeBtn.textContent = 'Remove Signature';
+    controls.appendChild(addBtn); controls.appendChild(removeBtn); pageWrap.appendChild(controls);
+
+    const canvas = document.createElement('canvas'); canvas.className = 'pageCanvas'; canvas.width = vp.width; canvas.height = vp.height;
+    canvas.style.maxWidth = '700px'; canvas.style.maxHeight = '1000px';
+    const ctx = canvas.getContext('2d'); await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    pageWrap.appendChild(canvas); pdfContainer.appendChild(pageWrap);
+    const pageObj = { wrap: pageWrap, canvas, signatureEl: null };
+    pdfPageWrappers.push(pageObj);
+
+    addBtn.onclick = () => { if (!pdfSigDataURL) return alert('Upload a signature image first.'); if (pageObj.signatureEl) return; pageObj.signatureEl = createSignatureElement(pdfSigDataURL, pageWrap, canvas); pageObj.signatureEl.dataset.pageIndex = i-1; pageObj.signatureEl.dataset.mode = 'pdf'; };
+    removeBtn.onclick = () => { if (pageObj.signatureEl) { pageObj.signatureEl.remove(); pageObj.signatureEl = null; } };
+  }
+};
+
+document.getElementById('pdfSigInput').onchange = async (e) => { const file = e.target.files[0]; if (!file) return; const img = new Image(); img.src = URL.createObjectURL(file); await img.decode(); pdfSigDataURL = await removeBG(img); alert('PDF signature processed (background removed). Click Add Signature on pages where you want it.'); };
+
+// ---------------- EXPORT ----------------
+function mergeCanvasWithSignature(pageObj) {
+  const temp = document.createElement('canvas'); temp.width = pageObj.canvas.width; temp.height = pageObj.canvas.height;
+  const tctx = temp.getContext('2d'); tctx.drawImage(pageObj.canvas, 0, 0);
+
+  if (pageObj.signatureEl) {
+    const sigEl = pageObj.signatureEl; const wrapRect = pageObj.wrap.getBoundingClientRect(); const sigRect = sigEl.getBoundingClientRect(); const canvasRect = pageObj.canvas.getBoundingClientRect();
+    const relX = sigRect.left - canvasRect.left; const relY = sigRect.top  - canvasRect.top;
+    const scaleX = pageObj.canvas.width / canvasRect.width; const scaleY = pageObj.canvas.height / canvasRect.height;
+    const dx = relX * scaleX; const dy = relY * scaleY; const dw = sigEl.clientWidth * scaleX; const dh = sigEl.clientHeight * scaleY;
+    const img = new Image();
+    // set crossOrigin in case the signature data URL or image comes from another origin
+    try { img.crossOrigin = 'anonymous'; } catch (e) { /* ignore if not supported */ }
+    img.src = sigEl.src;
+    return new Promise(resolve => {
+      img.onload = () => { tctx.drawImage(img, dx, dy, dw, dh); resolve(temp); };
+      img.onerror = () => resolve(temp);
+    });
+  }
+  return Promise.resolve(temp);
+}
+
+document.getElementById('downloadImagesBtn').onclick = async () => {
+  if (imagePageWrappers.length === 0) return alert('No images loaded.');
+  const { jsPDF } = window.jspdf;
+  const dpr = window.devicePixelRatio || 1;
+  // Render first merged canvas to determine exact dimensions for PDF page
+  const firstMerged = await mergeCanvasWithSignature(imagePageWrappers[0]);
+  const firstImgW = firstMerged.width / dpr;
+  const firstImgH = firstMerged.height / dpr;
+  const pdf = new jsPDF({ unit: 'px', format: [firstImgW, firstImgH] });
+
+  // Add first page image
+  pdf.addImage(firstMerged.toDataURL('image/png'), 'PNG', 0, 0, firstImgW, firstImgH);
+
+  // Add remaining pages
+  for (let i = 1; i < imagePageWrappers.length; i++) {
+    const pageObj = imagePageWrappers[i];
+    const mergedCanvas = await mergeCanvasWithSignature(pageObj);
+    const imgW = mergedCanvas.width / dpr;
+    const imgH = mergedCanvas.height / dpr;
+    const imgData = mergedCanvas.toDataURL('image/png');
+    pdf.addPage([imgW, imgH]);
+    pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH);
+  }
+
+  pdf.save('images_signed.pdf');
+};
+
+document.getElementById('downloadPdfBtn').onclick = async () => {
+  if (pdfPageWrappers.length === 0) return alert('No PDF loaded.');
+  const { jsPDF } = window.jspdf;
+  const dpr = window.devicePixelRatio || 1;
+  // Use the first merged canvas to size the PDF page correctly
+  const firstMerged = await mergeCanvasWithSignature(pdfPageWrappers[0]);
+  const firstImgW = firstMerged.width / dpr;
+  const firstImgH = firstMerged.height / dpr;
+  const pdf = new jsPDF({ unit: 'px', format: [firstImgW, firstImgH] });
+  pdf.addImage(firstMerged.toDataURL('image/png'), 'PNG', 0, 0, firstImgW, firstImgH);
+
+  for (let i = 1; i < pdfPageWrappers.length; i++) {
+    const pageObj = pdfPageWrappers[i];
+    const mergedCanvas = await mergeCanvasWithSignature(pageObj);
+    const imgW = mergedCanvas.width / dpr;
+    const imgH = mergedCanvas.height / dpr;
+    const imgData = mergedCanvas.toDataURL('image/png');
+    pdf.addPage([imgW, imgH]);
+    pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH);
+  }
+
+  pdf.save('pdf_signed.pdf');
+};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
